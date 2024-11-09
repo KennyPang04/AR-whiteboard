@@ -1,6 +1,8 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+import time
+
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -20,13 +22,23 @@ def interpolate_line(x0, y0, x1, y1, num_points=10):
     y_vals = np.linspace(y0, y1, num_points)
     return list(zip(x_vals, y_vals))
 
-def distance(landmark1,landmark2,img):
+def distance(landmark1, landmark2, img):
     h, w, _ = img.shape
     l1x, l1y = int(w - (landmark1.x * w)), int(landmark1.y * h)
     l2x, l2y = int(w - (landmark2.x * w)), int(landmark2.y * h)
-    distance = np.sqrt((l1x - l2x) ** 2 + (l1y - l2y) ** 2)
-    return distance
+    return np.sqrt((l1x - l2x) ** 2 + (l1y - l2y) ** 2)
 
+Colors = {
+    "BLACK": (0, 0, 0),
+    "WHITE": (255, 255, 255)
+}
+COLOR = Colors["BLACK"]  # Initial color
+
+THICKNESS = 3
+
+last_peace_sign_time = 0
+lockout_time = 1
+ERASER = False
 
 with mp_hands.Hands(
     static_image_mode=False,
@@ -47,8 +59,6 @@ with mp_hands.Hands(
                 mp_drawing.draw_landmarks(
                     img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-
-                gesture = None
                 # Extract landmarks for fingertips and wrist
                 thumb_tip = hand_landmarks.landmark[4]
                 index_tip = hand_landmarks.landmark[8]
@@ -59,15 +69,39 @@ with mp_hands.Hands(
                 ring_knuckle = hand_landmarks.landmark[14]
                 pinky_tip = hand_landmarks.landmark[20]
                 pinky_knuckle = hand_landmarks.landmark[18]
-                wrist = hand_landmarks.landmark[0]
+                
+                # Detect peace sign gesture
+                if (index_tip.y < index_knuckle.y and middle_tip.y < middle_knuckle.y and
+                        ring_tip.y > ring_knuckle.y and pinky_tip.y > pinky_knuckle.y):
+                    current_time = time.time()
+                    # print(f"Peace sign called")
+                    if current_time - last_peace_sign_time >= lockout_time and not ERASER:
+                        print("ENTERING eraser mode")
+                        COLOR = Colors["WHITE"] 
+                        THICKNESS = 20
+                        last_peace_sign_time =current_time
+                        ERASER = True
+                    if current_time - last_peace_sign_time >= lockout_time and ERASER:
+                        print("LEAVING eraser mode")
+                        COLOR = Colors["BLACK"] 
+                        THICKNESS = 3
+                        last_peace_sign_time =current_time
+                        ERASER = False
 
+            
+                # closed fist for delte
+                if((index_tip.y > index_knuckle.y) and (middle_tip.y > middle_knuckle.y) and (ring_tip.y > ring_knuckle.y) and (pinky_tip.y > pinky_knuckle.y)):
+                    whiteboard = np.ones((500, 500, 3), dtype=np.uint8) * 255
+                    
+                    
+                    
 
-                EPSILON = 23 # Threshold for detecting if the fingers are touching
-                if distance(index_tip,thumb_tip,img) <= EPSILON:
-                    print(f"FINGERS ARE TOUCHING, DRAWING, distance = {distance}")
-                    h, w, _ = img.shape
-                    index_x, index_y = int(w - (index_tip.x * w)), int(index_tip.y * h)
-                    thumb_x, thumb_y = int(w - (thumb_tip.x * w)), int(thumb_tip.y * h)
+                
+                # Drawing condition (index and thumb touching)
+                EPSILON = 23  # Threshold for detecting if the fingers are touching
+                if distance(index_tip, thumb_tip, img) <= EPSILON:
+                    index_x, index_y = int(img.shape[1] - (index_tip.x * img.shape[1])), int(index_tip.y * img.shape[0])
+                    
                     # Add the current position to the list for smoothing
                     x_coords.append(index_x)
                     y_coords.append(index_y)
@@ -84,13 +118,13 @@ with mp_hands.Hands(
                         points = interpolate_line(last_x, last_y, avg_x, avg_y, num_points=10)
                         for i in range(1, len(points)):
                             cv2.line(whiteboard, (int(points[i-1][0]), int(points[i-1][1])), 
-                                     (int(points[i][0]), int(points[i][1])), (0, 0, 0), 3)
+                                     (int(points[i][0]), int(points[i][1])), COLOR, THICKNESS)
 
                     # Update last position
                     last_x, last_y = avg_x, avg_y
 
                     # Draw a small circle at the fingertip position for visualization
-                    cv2.circle(whiteboard, (avg_x, avg_y), 3, (0, 0, 0), -1)
+                    cv2.circle(whiteboard, (avg_x, avg_y), 3, COLOR, -1)
 
                 else:
                     # Reset the drawing points if no hand is detected or fingers are not touching
