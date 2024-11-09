@@ -20,6 +20,14 @@ def interpolate_line(x0, y0, x1, y1, num_points=10):
     y_vals = np.linspace(y0, y1, num_points)
     return list(zip(x_vals, y_vals))
 
+def distance(landmark1,landmark2,img):
+    h, w, _ = img.shape
+    l1x, l1y = int(w - (landmark1.x * w)), int(landmark1.y * h)
+    l2x, l2y = int(w - (landmark2.x * w)), int(landmark2.y * h)
+    distance = np.sqrt((l1x - l2x) ** 2 + (l1y - l2y) ** 2)
+    return distance
+
+
 with mp_hands.Hands(
     static_image_mode=False,
     max_num_hands=1,
@@ -39,19 +47,27 @@ with mp_hands.Hands(
                 mp_drawing.draw_landmarks(
                     img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-                # Get the landmarks of the index finger tip and the thumb finger tip
-                index_finger_tip = hand_landmarks.landmark[8]
-                thumb_finger_tip = hand_landmarks.landmark[4]
 
-                # Convert normalized coordinates to pixel coordinates
-                h, w, _ = img.shape
-                index_x, index_y = int(w - (index_finger_tip.x * w)), int(index_finger_tip.y * h)
-                thumb_x, thumb_y = int(w - (thumb_finger_tip.x * w)), int(thumb_finger_tip.y * h)
+                gesture = None
+                # Extract landmarks for fingertips and wrist
+                thumb_tip = hand_landmarks.landmark[4]
+                index_tip = hand_landmarks.landmark[8]
+                index_knuckle = hand_landmarks.landmark[6]
+                middle_tip = hand_landmarks.landmark[12]
+                middle_knuckle = hand_landmarks.landmark[10]
+                ring_tip = hand_landmarks.landmark[16]
+                ring_knuckle = hand_landmarks.landmark[14]
+                pinky_tip = hand_landmarks.landmark[20]
+                pinky_knuckle = hand_landmarks.landmark[18]
+                wrist = hand_landmarks.landmark[0]
 
-                EPSILON = 30  # Threshold for detecting if the fingers are touching
-                distance = np.sqrt((index_x - thumb_x) ** 2 + (index_y - thumb_y) ** 2)
 
-                if distance <= EPSILON:
+                EPSILON = 23 # Threshold for detecting if the fingers are touching
+                if distance(index_tip,thumb_tip,img) <= EPSILON:
+                    print(f"FINGERS ARE TOUCHING, DRAWING, distance = {distance}")
+                    h, w, _ = img.shape
+                    index_x, index_y = int(w - (index_tip.x * w)), int(index_tip.y * h)
+                    thumb_x, thumb_y = int(w - (thumb_tip.x * w)), int(thumb_tip.y * h)
                     # Add the current position to the list for smoothing
                     x_coords.append(index_x)
                     y_coords.append(index_y)
