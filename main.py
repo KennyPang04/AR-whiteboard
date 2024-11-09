@@ -11,10 +11,18 @@ whiteboard = np.ones((500, 500, 3), dtype=np.uint8) * 255
 
 # Store the last position of the index finger
 last_x, last_y = None, None
+x_coords, y_coords = [], []  # To store recent positions for smoothing
+smooth_factor = 5  # Number of points to average for smoothing
+
+# Interpolation function to create smoother lines between points
+def interpolate_line(x0, y0, x1, y1, num_points=10):
+    x_vals = np.linspace(x0, x1, num_points)
+    y_vals = np.linspace(y0, y1, num_points)
+    return list(zip(x_vals, y_vals))
 
 with mp_hands.Hands(
     static_image_mode=False,
-    max_num_hands=2,
+    max_num_hands=1,
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5
 ) as hands:
@@ -30,27 +38,53 @@ with mp_hands.Hands(
             for hand_landmarks in results.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(
                     img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                
-                # Loop through landmarks to find the index finger (ID 8)
-                for id, landmark in enumerate(hand_landmarks.landmark):
-                    h, w, _ = img.shape
-                    # Adjust the x-coordinate to invert it
-                    cx, cy = int(w - (landmark.x * w)), int(landmark.y * h)
-                    
-                    # Check if the landmark is the tip of the index finger
-                    if id == 8:
-                        # If there's a previous point, draw a line to make drawing smoother
-                        if last_x is not None and last_y is not None:
-                            cv2.line(whiteboard, (last_x, last_y), (cx, cy), (0, 0, 0), 3)
-                        # Update the last position
-                        last_x, last_y = cx, cy
-                        
-                        # Draw a circle at the current position for better visualization
-                        cv2.circle(whiteboard, (cx, cy), 3, (0, 0, 0), -1)
+
+                # Get the landmarks of the index finger tip and the thumb finger tip
+                index_finger_tip = hand_landmarks.landmark[8]
+                thumb_finger_tip = hand_landmarks.landmark[4]
+
+                # Convert normalized coordinates to pixel coordinates
+                h, w, _ = img.shape
+                index_x, index_y = int(w - (index_finger_tip.x * w)), int(index_finger_tip.y * h)
+                thumb_x, thumb_y = int(w - (thumb_finger_tip.x * w)), int(thumb_finger_tip.y * h)
+
+                EPSILON = 30  # Threshold for detecting if the fingers are touching
+                distance = np.sqrt((index_x - thumb_x) ** 2 + (index_y - thumb_y) ** 2)
+
+                if distance <= EPSILON:
+                    # Add the current position to the list for smoothing
+                    x_coords.append(index_x)
+                    y_coords.append(index_y)
+
+                    # Smooth the path by averaging recent positions
+                    if len(x_coords) > smooth_factor:
+                        x_coords.pop(0)
+                        y_coords.pop(0)
+                    avg_x = int(np.mean(x_coords))
+                    avg_y = int(np.mean(y_coords))
+
+                    # Draw line if there is a previous point
+                    if last_x is not None and last_y is not None:
+                        points = interpolate_line(last_x, last_y, avg_x, avg_y, num_points=10)
+                        for i in range(1, len(points)):
+                            cv2.line(whiteboard, (int(points[i-1][0]), int(points[i-1][1])), 
+                                     (int(points[i][0]), int(points[i][1])), (0, 0, 0), 3)
+
+                    # Update last position
+                    last_x, last_y = avg_x, avg_y
+
+                    # Draw a small circle at the fingertip position for visualization
+                    cv2.circle(whiteboard, (avg_x, avg_y), 3, (0, 0, 0), -1)
+
+                else:
+                    # Reset the drawing points if no hand is detected or fingers are not touching
+                    last_x, last_y = None, None
+                    x_coords, y_coords = [], []
 
         else:
-            # Reset the last position if no hand is detected
+            # If no hand is detected, reset the last position
             last_x, last_y = None, None
+            x_coords, y_coords = [], []
 
         # Display the camera feed and the whiteboard
         cv2.imshow("Hand Tracking", img)
