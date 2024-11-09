@@ -34,7 +34,7 @@ with mp_hands.Hands(
 
                     if(id == 8):
                         cv2.circle(whiteboard, (cx, cy), 3, (0,0,0), -1)
-                        pass #will run coordinate thorugh the white 
+                        pass 
 
         cv2.imshow("Hand Tracking", img)
         cv2.imshow("Whiteboard", whiteboard)
