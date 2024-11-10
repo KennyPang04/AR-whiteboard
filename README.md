@@ -1,3 +1,4 @@
 # AR-whiteboard
-ran through app.py --web version (will need to install all dependencies) 
-main.py --gui verison (will need to install all dependencies) 
+docker doesn't work will need to install all dependencies. 
+run app.py --web version 
+run main.py --gui verison 
