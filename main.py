@@ -13,8 +13,8 @@ whiteboard = np.ones((500, 500, 3), dtype=np.uint8) * 255
 def draw_pattern(whiteboard):
     height, width, _ = whiteboard.shape
     top_left_x, top_left_y = 0, 0
-    top_right_x, top_right_y = width - 25, 0  # Position for the right-side box
-    box_size = 25  # Size of the pattern (e.g., 50x50 pixels)
+    top_right_x, top_right_y = width - 25, 0 
+    box_size = 25
     # Display Color
     whiteboard[top_right_y:top_right_y + box_size, top_right_x:top_right_x + box_size] = COLOR
     
@@ -35,6 +35,7 @@ def interpolate_line(x0, y0, x1, y1, num_points=10):
     y_vals = np.linspace(y0, y1, num_points)
     return list(zip(x_vals, y_vals))
 
+# Get distance between points
 def distance(landmark1, landmark2, img):
     h, w, _ = img.shape
     l1x, l1y = int(w - (landmark1.x * w)), int(landmark1.y * h)
@@ -43,7 +44,6 @@ def distance(landmark1, landmark2, img):
 
 def get_next_color(current_color):
     current_index = Colors_list.index(current_color)
-    # Loop to find the next non-white color
     while True:
         current_index = (current_index + 1) % len(Colors_list)
         next_color_name = Colors_list[current_index]
@@ -78,8 +78,8 @@ last_thumb_up_time = 0
 lockout_time = 2
 ERASER = False
 last_x, last_y = None, None
-x_coords, y_coords = [], []  # To store recent positions for smoothing
-smooth_factor = 5  # Number of points to average for smoothing
+x_coords, y_coords = [], []  
+smooth_factor = 5 
 draw_pattern(whiteboard)
 
 with mp_hands.Hands(
@@ -114,6 +114,7 @@ with mp_hands.Hands(
                 pinky_tip = hand_landmarks.landmark[20]
                 pinky_knuckle = hand_landmarks.landmark[18]
 
+                # Detecting Color Sign
                 if (thumb_tip.y < thumb_ip.y and            
                         pinky_tip.y < pinky_knuckle.y and    
                         index_tip.y > index_knuckle.y and    
@@ -158,16 +159,14 @@ with mp_hands.Hands(
                         for i in range(1, len(points)):
                             cv2.line(whiteboard, (int(points[i-1][0]), int(points[i-1][1])), 
                                      (int(points[i][0]), int(points[i][1])), COLOR, THICKNESS)
-                    # Update last position
                     last_x, last_y = avg_x, avg_y
-                    # Drawing
+    
                     cv2.circle(whiteboard, (avg_x, avg_y), THICKNESS, COLOR, -1)
                 else:
                     # Reset the drawing points if no hand is detected or fingers are not touching
                     last_x, last_y = None, None
                     x_coords, y_coords = [], []
         else:
-            # If no hand is detected, reset the last position
             last_x, last_y = None, None
             x_coords, y_coords = [], []
         
