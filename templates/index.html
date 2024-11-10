@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AR Whiteboard</title>
+        <link rel="stylesheet" href="../static/styles.css">
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+
+    <body class="flex-col space-y-10 m-8 bg-gradient-to-r from-sky-300 to-green-500 text-white">
+        <header class="flex-col flex justify-center text-center">
+            <h2 class="text-3xl font-semibold"> Welcome to </h2>
+            <h1 class="text-4xl font-bold"> AR Whiteboard </h1>
+        </header>
+
+        <nav class="pb-64 flex-col flex justify-center">
+            <ul class="flex justify-center space-x-16 text-center font-semibold">
+                <li>
+                    <img src="../static/images/sign1.jpg" width="200">
+                    <p> Set Erase Mode </p>
+                </li>
+                <li>
+                    <img src="../static/images/sign4.png" width="400">
+                    <p> Change Color </p>
+                </li>
+                <li>
+                    <img src="../static/images/sign5.png" width="265">
+                    <p> Draw on Whiteboard </p>
+                </li>
+            </ul>
+            <!-- <button class="my-12 px-4 py-2 bg-amber-400 text-white font-semibold rounded-lg shadow-md hover:bg-amber-600"> Start Drawing </button> -->
+        </nav>
+        
+        <article class="flex justify-center space-x-4 pb-16">
+            <canvas id="drawingCanvas" width="500" height="500" class="border-4 border-black rounded-2xl bg-white"></canvas>
+            
+            <section class="camera">
+                <img src="{{ url_for('video_feed') }}" width="500" height="500" class=" rounded-2xl"/> <!-- Video feed from backend -->
+                <div id="coordinates" class="text-2xl font-semibold"></div>
+            </section>
+        </article>
+
+        <script src="../static/js/draw.js"></script>
+    </body>
+</html>
