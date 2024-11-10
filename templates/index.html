@@ -35,5 +35,18 @@
             lastY = null;
         });
     </script>
+    <div class="camera">
+        <h1>Hand Motion Tracker</h1>
+        <img src="{{ url_for('video_feed') }}" width="500" height="500" />
+        <div id="coordinates"></div>
+    
+        <script>
+            const eventSource = new EventSource('/coordinates');
+            eventSource.onmessage = function(event) {
+                const coordinates = event.data.split(',');
+                document.getElementById('coordinates').innerText = `Index Finger: x: ${coordinates[0]}, y: ${coordinates[1]}`;
+            };
+        </script>
+        </div>
 </body>
 </html>
