@@ -1,81 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whiteboard</title>
-</head>
-<body>
-    <h1>Hand Motion Tracker</h1>
-    <canvas id="drawingCanvas" width="500" height="500" style="border:1px solid black;"></canvas>
-    
-    <div class="camera">
-        <!-- Video feed from backend -->
-        <img src="{{ url_for('video_feed') }}" width="500" height="500" />
-    </div>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AR Whiteboard</title>
+        <link rel="stylesheet" href="../static/styles.css">
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
 
-    <script>
-        let canvas = document.getElementById('drawingCanvas');
-        let ctx = canvas.getContext('2d');
-        let lastX = null;
-        let lastY = null;
-        ctx.lineWidth = 3;
-        // Establish a single EventSource connection to receive coordinates
-        const source = new EventSource('/coordinates');
-        source.onmessage = function(event) {
-            const data = event.data.split(',');
-           
-            const x = data[0];
-            const y = data[1];
-            // Draw on canvas if we have valid coordinates
-            if(x === "w"){
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 30;
-                return;
-            }
-            if(x === "l"){
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 3;
-                return
-            }
-            if(x === "b" && y === "b"){
-                ctx.clearRect(0,0,canvas.width,canvas.height);
-                let lastX = null;
-                let lastY = null;
-                return;
-            }
-            if (x === "a")  {
-            lastX = null;
-            lastY = null;
-            } else {
-                const parsedX = parseFloat(x);
-                const parsedY = parseFloat(y);
-            // Draw on canvas if we have valid coordinates and valid previous coordinates
-            if (lastX !== null && lastY !== null) {
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-            }
+    <body class="flex-col space-y-10 m-8 bg-gradient-to-r from-sky-300 to-green-500 text-white">
+        <header class="flex-col flex justify-center text-center">
+            <h2 class="text-3xl font-semibold"> Welcome to </h2>
+            <h1 class="text-4xl font-bold"> AR Whiteboard </h1>
+        </header>
 
-        }
+        <nav class="pb-64 flex-col flex justify-center">
+            <ul class="flex justify-center space-x-16 text-center font-semibold">
+                <li>
+                    <img src="../static/images/sign1.jpg" width="200">
+                    <p> Set Erase Mode </p>
+                </li>
+                <li>
+                    <img src="../static/images/sign4.png" width="400">
+                    <p> Change Color </p>
+                </li>
+                <li>
+                    <img src="../static/images/sign5.png" width="265">
+                    <p> Draw on Whiteboard </p>
+                </li>
+            </ul>
+            <!-- <button class="my-12 px-4 py-2 bg-amber-400 text-white font-semibold rounded-lg shadow-md hover:bg-amber-600"> Start Drawing </button> -->
+        </nav>
+        
+        <article class="flex justify-center space-x-4 pb-16">
+            <canvas id="drawingCanvas" width="500" height="500" class="border-4 border-black rounded-2xl bg-white"></canvas>
+            
+            <section class="camera">
+                <img src="{{ url_for('video_feed') }}" width="500" height="500" class=" rounded-2xl"/> <!-- Video feed from backend -->
+                <div id="coordinates" class="text-2xl font-semibold"></div>
+            </section>
+        </article>
 
-            // Update the last coordinates
-            lastX = x;
-            lastY = y;
-
-            // Display the current coordinates in the div
-            document.getElementById('coordinates').innerText = `Index Finger: x: ${x}, y: ${y}`;
-        };
-
-        // Reset the canvas on click
-        canvas.addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            lastX = null;
-            lastY = null;
-        });
-    </script>
-
-    <div id="coordinates"></div>
-</body>
+        <script src="../static/js/draw.js"></script>
+    </body>
 </html>
