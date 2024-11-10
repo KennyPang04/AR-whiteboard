@@ -16,16 +16,40 @@ let canvas = document.getElementById('drawingCanvas');
                 ctx.lineWidth = 30;
                 return;
             }
-            if(x === "l"){
+            if(x === "b"){
                 ctx.strokeStyle = 'black';
                 ctx.lineWidth = 3;
                 return
             }
-            if(x === "b" && y === "b"){
-                ctx.clearRect(0,0,canvas.width,canvas.height);
-                let lastX = null;
-                let lastY = null;
-                return;
+            if(x === "r"){
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 3;
+                return
+            }
+            if(x === "o"){
+                ctx.strokeStyle = 'orange';
+                ctx.lineWidth = 3;
+                return
+            }
+            if(x === "y"){
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 3;
+                return
+            }
+            if(x === "g"){
+                ctx.strokeStyle = 'green';
+                ctx.lineWidth = 3;
+                return
+            }
+            if(x=== "b"){
+                ctx.strokeStyle = 'b';
+                ctx.lineWidth = 3;
+                return
+            }
+            if(x === "l"){
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 3;
+                return
             }
             if (x === "a")  {
             lastX = null;

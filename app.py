@@ -16,11 +16,17 @@ cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 500)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 500)
 whiteboard = np.ones((500, 500, 3), dtype=np.uint8) * 255
-
+counter = 0
 # Store the last position of the index finger
 last_x, last_y = None, None
 x_coords, y_coords = [], []  
 smooth_factor = 5  
+color_word = "BLACK"
+last_thumb_up_time = 0
+last_peace_sign_time = 0
+lockout_time = 2
+ERASER = False
+
 def interpolate_line(x0, y0, x1, y1, num_points=10):
     x_vals = np.linspace(x0, x1, num_points)
     y_vals = np.linspace(y0, y1, num_points)
@@ -32,11 +38,33 @@ def distance(landmark1, landmark2, img):
     l2x, l2y = int(w - (landmark2.x * w)), int(landmark2.y * h)
     return np.sqrt((l1x - l2x) ** 2 + (l1y - l2y) ** 2)
 
+def get_next_color(current_color):
+    current_index = Colors_list.index(current_color)
+    while True:
+        current_index = (current_index + 1) % len(Colors_list)
+        next_color_name = Colors_list[current_index]
+        if next_color_name != "WHITE":
+            return next_color_name
 
 
-last_peace_sign_time = 0
-lockout_time = 1
-ERASER = False
+Colors = {
+    "BLACK": "l",
+    "WHITE": "w",
+    "RED": "r",
+    "ORANGE": "o",
+    "YELLOW": "y",
+    "GREEN": "g",
+    "BLUE": "b",
+}
+Colors_list = ["BLACK",
+    "WHITE",
+    "RED",
+    "ORANGE",
+    "YELLOW",
+    "GREEN",
+    "BLUE"
+]
+
 
 @app.route('/')
 def index():
@@ -59,7 +87,7 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def generate_coordinates_stream():
-    global last_x, last_y, x_coords, y_coords, whiteboard, THICKNESS, ERASER, last_peace_sign_time
+    global last_x, last_y, x_coords, y_coords, ERASER, Colors, Colors_list, last_peace_sign_time, smooth_factor, color_word, lockout_time, last_thumb_up_time
     
     with mp_hands.Hands(
         static_image_mode=False,
@@ -84,7 +112,11 @@ def generate_coordinates_stream():
                         img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
                     # Extract landmarks for fingertips and wrist
+   
+
+                    wrist =  hand_landmarks.landmark[0]
                     thumb_tip = hand_landmarks.landmark[4]
+                    thumb_ip = hand_landmarks.landmark[3]
                     index_tip = hand_landmarks.landmark[8]
                     index_knuckle = hand_landmarks.landmark[6]
                     middle_tip = hand_landmarks.landmark[12]
@@ -93,11 +125,18 @@ def generate_coordinates_stream():
                     ring_knuckle = hand_landmarks.landmark[14]
                     pinky_tip = hand_landmarks.landmark[20]
                     pinky_knuckle = hand_landmarks.landmark[18]
-
+                    if (thumb_tip.y < thumb_ip.y and pinky_tip.y < pinky_knuckle.y and index_tip.y > index_knuckle.y and middle_tip.y > middle_knuckle.y and ring_tip.y > ring_knuckle.y and pinky_tip.y < index_knuckle.y and pinky_tip.y < middle_knuckle.y and pinky_tip.y < ring_knuckle.y and thumb_tip.y < ring_knuckle.y and thumb_tip.y < middle_knuckle.y):
+                        current_time = time.time()
+                        if current_time - last_thumb_up_time >= lockout_time and not ERASER:
+                            print("Changing Color")
+                            next_color = get_next_color(color_word)
+                            COLOR = Colors[next_color]
+                            color_word = next_color
+                            last_thumb_up_time = current_time
+                            yield f"data: {COLOR},{COLOR}\n\n"
                     # Detect peace sign gesture
                     current_time = time.time()
-                    if (index_tip.y < index_knuckle.y and middle_tip.y < middle_knuckle.y and
-                            ring_tip.y > ring_knuckle.y and pinky_tip.y > pinky_knuckle.y):
+                    if (index_tip.y < index_knuckle.y and middle_tip.y < middle_knuckle.y and ring_tip.y > ring_knuckle.y and pinky_tip.y > pinky_knuckle.y):
                         if current_time - last_peace_sign_time >= lockout_time and not ERASER:
                             print("ENTERING eraser mode")
                             index_x = "w"
@@ -114,14 +153,14 @@ def generate_coordinates_stream():
                             yield f"data: {index_x},{index_y}\n\n"
                     EPSILON = 23  
                     # closed fist for delete
-                    if (index_tip.y > index_knuckle.y and middle_tip.y > middle_knuckle.y and ring_tip.y > ring_knuckle.y and pinky_tip.y > pinky_knuckle.y):
-                        print("ENTERING delete whole canvas")
-                        last_x, last_y = None, None
-                        x_coords, y_coords = [], []
-                        index_x = "b"
-                        index_y = "b"
+                    # if (index_tip.y > index_knuckle.y and middle_tip.y > middle_knuckle.y and ring_tip.y > ring_knuckle.y and pinky_tip.y > pinky_knuckle.y):
+                    #     print("ENTERING delete whole canvas")
+                    #     last_x, last_y = None, None
+                    #     x_coords, y_coords = [], []
+                    #     index_x = "b"
+                    #     index_y = "b"
 
-                    elif distance(index_tip, thumb_tip, img) <= EPSILON: #Drawing condition (index and thumb touching)
+                    if distance(index_tip, thumb_tip, img) <= EPSILON: #Drawing condition (index and thumb touching)
                         index_x, index_y = int(img.shape[1] - (index_tip.x * img.shape[1])), int(index_tip.y * img.shape[0])
                         x_coords.append(index_x)
                         y_coords.append(index_y)
